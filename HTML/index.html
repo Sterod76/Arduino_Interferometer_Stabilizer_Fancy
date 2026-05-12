@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Arduino PID Control &amp; PGA</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="main">
+  <div id="left">
+
+    <fieldset id="conn_group">
+      <legend>Connection</legend>
+      <label>Porta:</label>
+      <input type="text" id="port_edit" value="(Web Serial)">
+      <label>Baud:</label>
+      <input type="number" id="baud_spin" value="115200" min="300" max="4000000">
+      <button id="connect_btn">Connected</button>
+      <button id="disconnect_btn" disabled>Disconnect</button>
+      <span id="status_label" class="status-red">Status: Disconnected</span>
+    </fieldset>
+
+    <fieldset id="pid_group">
+      <legend>PID &amp; SET</legend>
+      <div class="grid">
+        <label>Kp</label> <input type="number" id="kp_field" step="0.000001" value="0.05">
+        <label>Ki</label> <input type="number" id="ki_field" step="0.000001" value="0.5">
+        <label>Kd</label> <input type="number" id="kd_field" step="0.000001" value="0.0">
+
+        <label>Offset (O)</label> <input type="number" id="off_field" step="0.0001" value="0.5">
+        <label>Amplitude (A)</label> <input type="number" id="amp_field" step="0.0001" value="0.05">
+        <label>sample_interval ms (T)</label> <input type="number" id="t_field" min="1" max="10000" value="50">
+      </div>
+
+      <div class="row">
+        <button id="setP_btn">SET P</button>
+        <button id="setI_btn">SET I</button>
+        <button id="setD_btn">SET D</button>
+        <button id="setO_btn">SET O</button>
+        <button id="setA_btn">SET A</button>
+        <button id="setT_btn">SET T</button>
+      </div>
+
+      <div class="row">
+        <button id="save_params_btn">Save parms.</button>
+        <button id="load_params_btn">Load parms.</button>
+        <button id="send_all_params_btn">Send all parms.</button>
+
+        <div class="combo-box">
+          <label>PID</label>
+          <select id="pid_combo">
+            <option>ON</option>
+            <option>OFF</option>
+          </select>
+        </div>
+
+        <div class="combo-box">
+          <label>FreqRef</label>
+          <select id="mode_combo">
+            <option>OFF</option>
+            <option>SinWave</option>
+            <option>TTL</option>
+          </select>
+        </div>
+
+        <button id="monitor_btn">Monitor V+ V-</button>
+      </div>
+    </fieldset>
+
+    <fieldset id="pga_group">
+      <legend>Programmable Gain Amplifier (PGA)</legend>
+      <div class="grid">
+        <label>CS</label>
+        <select id="cs_combo"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+        <label>Gain</label>
+        <select id="preset_combo">
+          <option value="1">0.25</option>
+          <option value="2">1</option>
+          <option value="3">10</option>
+          <option value="4">120</option>
+        </select>
+
+        <label>Trim</label>
+        <select id="chan_combo">
+          <option value="1">0</option>
+          <option value="2">1.3</option>
+          <option value="3">2.5</option>
+          <option value="4">3.8</option>
+          <option value="5">4.9</option>
+          <option value="6">6.1</option>
+          <option value="7">7.3</option>
+          <option value="8">8.4</option>
+          <option value="9">10.6</option>
+          <option value="10">11.7</option>
+          <option value="11">12.7</option>
+          <option value="12">13.7</option>
+          <option value="13">14.7</option>
+          <option value="14">15.7</option>
+          <option value="15">16.7</option>
+          <option value="16">17.6</option>
+        </select>
+        <label>Polarity</label>
+        <select id="pol_combo"><option>P</option><option>N</option></select>
+
+        <label>Enable</label>
+        <select id="en_combo"><option>0</option><option>1</option></select>
+        <button id="send_pga_btn">Send PGA Commands</button>
+      </div>
+      <div id="pga_cmd_label">Command: -</div>
+    </fieldset>
+
+    <fieldset id="acq_group">
+      <legend>Data Collection</legend>
+      <div class="grid">
+        <label>Num. of repetitions</label>
+        <input type="number" id="times_spin" min="1" max="100" value="2">
+        <label>Num. coll. points</label>
+        <input type="number" id="samples_spin" min="1" max="4000" value="200">
+        <label>Filename</label>
+        <input type="text" id="filename_edit" value="./Test_PID_ON_OFF">
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="save_check" checked> Save data</label>
+        <label><input type="checkbox" id="analyze_check"> analysis after collection</label>
+      </div>
+      <div class="row">
+        <button id="start_acq_btn">Start Acquisizione PID ON/OFF</button>
+        <button id="stop_acq_btn" disabled>Stop</button>
+        <button id="calibrate_btn">CALIBRATE</button>
+        <button id="print_btn">PRINT (one block)</button>
+        <button id="reset_btn">RESET</button>
+        <button id="analyze_btn" disabled>Analysis data</button>
+      </div>
+      <textarea id="log_area" readonly></textarea>
+    </fieldset>
+
+  </div>
+
+  <div id="right">
+    <fieldset>
+      <legend>Visualizzazione dati (PRINT)</legend>
+      <canvas id="canvas_IQ" width="380" height="220"></canvas>
+      <canvas id="canvas_Delta" width="380" height="220"></canvas>
+      <canvas id="canvas_V" width="380" height="220"></canvas>
+    </fieldset>
+  </div>
+</div>
+
+<!-- Monitor window (popup-like) -->
+<div id="monitor_window" class="popup hidden">
+  <div class="popup-header">
+    Monitor V+ / V-
+    <button id="monitor_close_btn">×</button>
+  </div>
+  <div class="monitor-grid">
+    <label>V+</label><input id="vplus_field" readonly value="0.0">
+    <label>V-</label><input id="vminus_field" readonly value="0.0">
+  </div>
+  <canvas id="canvas_osc" width="480" height="220"></canvas>
+</div>
+
+<!-- Analysis dialog -->
+<div id="analysis_dialog" class="dialog hidden">
+  <div class="dialog-header">
+    Analysis - analyzer_simple_PID
+    <button id="analysis_close_btn">×</button>
+  </div>
+  <div class="dialog-body">
+    <canvas id="canvas_a1" width="560" height="280"></canvas>
+    <canvas id="canvas_a2" width="560" height="280"></canvas>
+    <canvas id="canvas_a3" width="560" height="280"></canvas>
+    <canvas id="canvas_a4" width="560" height="280"></canvas>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
